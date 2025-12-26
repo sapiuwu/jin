@@ -10,12 +10,23 @@ type ServerScanner interface {
 
 // ServerInfo holds the gathered data
 type ServerInfo struct {
-	URL            string            `json:"url"`
-	StatusCode     int               `json:"status_code"`
-	Server         string            `json:"server"`
-	PoweredBy      string            `json:"powered_by"`
-	ContentType    string            `json:"content_type"`
-	TLSVersion     string            `json:"tls_version,omitempty"`
-	TLSCipherSuite string            `json:"tls_cipher_suite,omitempty"`
-	Headers        map[string]string `json:"headers"`
+	URL            string
+	Domain         string // e.g., "chat.qwen.ai"
+	RootDomain     string // e.g., "qwen.ai"
+	StatusCode     int
+	Server         string
+	PoweredBy      string
+	ContentType    string
+	TLSVersion     string
+	TLSCipherSuite string
+	Headers        map[string]string
+
+	// Security metadata
+	HasHSTS          bool
+	HasXFrameOptions bool
+	HasCSP           bool
+	HasCSPReportOnly bool
+	CSPWarnings      []string
+	CookieWarnings   []string
+	CloudProvider    string
 }

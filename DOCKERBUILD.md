@@ -4,7 +4,7 @@ docker build -t jin .
 ```
 
 ```bash
-docker build -f Dockerfile.bookworm -t wahyouka/jin:v2.0.0-bookworm .
+docker build -f Dockerfile.bookworm -t wahyouka/jin:v2.1.0-bookworm .
 ```
 
 ```bash

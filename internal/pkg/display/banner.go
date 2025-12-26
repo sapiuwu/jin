@@ -14,7 +14,7 @@ var BANNER = color.New(color.FgCyan).Sprint(
       /  /  /  /  /   \  \/  /
   ___/  /  /  /  /  /  \    /
  |_____/  /__/  /__/    \__/
-`) + color.New(color.FgWhite).Sprint(` v2.0.0
+`) + color.New(color.FgWhite).Sprint(` v2.1.0
 
   🔍 Just Intelligence Network
   CLI for server & network reconnaissance

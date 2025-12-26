@@ -2,9 +2,9 @@
 
 <img src="./public/jin-demo.gif">
 
-**Version: 2.0.0**
+**Version: 2.1.0**
 
-Jin is an open-source command-line interface (CLI) toolkit designed for OSINT (Open-Source Intelligence) and reconnaissance tasks. This project is an evolution of the original [aliftech/jin](https://github.com/aliftech/jin), which focused on ethical port scanning and DDoS attack simulation for educational purposes. Starting with version 2.0.0, Jin shifts its focus to ethical OSINT and recon activities, empowering users to gather information about targets securely and responsibly. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
+Jin is an open-source command-line interface (CLI) toolkit designed for OSINT (Open-Source Intelligence) and reconnaissance tasks. This project is an evolution of the original [aliftech/jin](https://github.com/aliftech/jin), which focused on ethical port scanning and DDoS attack simulation for educational purposes. Starting with version 2.1.0, Jin shifts its focus to ethical OSINT and recon activities, empowering users to gather information about targets securely and responsibly. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
 ## Overview
 
@@ -53,7 +53,7 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 1. Pull the latest image from Docker Hub (once pushed):
 
    ```
-   docker pull wahyouka/jin:v2.0.0
+   docker pull wahyouka/jin:v2.1.0
    ```
 
 2. Run the CLI interactively:
