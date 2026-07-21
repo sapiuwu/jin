@@ -4,9 +4,9 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/aliftech/jin/internal/module/db"
-	info "github.com/aliftech/jin/internal/module/info"
+	"github.com/aliftech/jin/internal/module/info"
 	"github.com/aliftech/jin/internal/module/port"
+	"github.com/aliftech/jin/internal/module/techstack"
 	"github.com/aliftech/jin/internal/scrape"
 )
 
@@ -20,7 +20,14 @@ func NewPortScanHandler() *port.CLIHandler {
 	return port.NewCLIHandler(scanner)
 }
 
-func NewDatabaseHandler() *db.CLIHandler {
-	detector := scrape.NewHTTPDatabaseDetector()
-	return db.NewCLIHandler(detector)
+func NewTechStackHandler() *techstack.CLIHandler {
+	detector := scrape.NewHTTPTechStackDetector(10 * time.Second)
+	subdomains := scrape.NewCTSubdomainEnumerator(15 * time.Second)
+	dns := scrape.NewDNSLookuper()
+
+	return techstack.NewCLIHandler(
+		detector,
+		techstack.WithSubdomainEnumerator(subdomains),
+		techstack.WithDNSLookuper(dns),
+	)
 }
