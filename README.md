@@ -70,10 +70,24 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 
 ## Usage
 
-Run the CLI with the desired command and options:
+### Interactive mode (recommended)
+
+Running `jin` with no arguments starts an interactive session. Type any of the commands below (or a bare URL), press Enter to run it, and the prompt returns afterwards so you can keep investigating. Press `Ctrl+C` (or type `exit`/`quit`) to leave. Up/Down arrow keys recall history, and `Tab` completes command names.
 
 ```
-./jin <command> [options] <url> [options]
+jin
+jin> https://example.com
+jin> ports -t example.com -p 80,443
+jin> tech-stack -t example.com --subdomains
+jin> exit
+```
+
+### One-shot commands
+
+For scripts and Docker, commands can also be passed directly — the program runs once and exits:
+
+```
+jin <command> [options] <url> [options]
 ```
 
 Or, using Docker:
