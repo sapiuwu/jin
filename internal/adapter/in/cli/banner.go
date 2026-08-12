@@ -9,11 +9,11 @@ const bannerArt = `
  |_____/  /__/  /__/    \__/
 `
 
-const bannerText = ` v2.2.0
+const bannerText = ` v2.3.0
 
   🔍 Just Intelligence Network
   CLI for server & network reconnaissance
-  https://github.com/aliftech/jin
+  https://github.com/sapiuwu/jin
 `
 
 const bannerUsage = `
