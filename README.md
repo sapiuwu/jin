@@ -4,7 +4,7 @@
 
 **Version: 2.3.0**
 
-Jin is an open-source command-line interface (CLI) toolkit designed for OSINT (Open-Source Intelligence) and reconnaissance tasks. This project is an evolution of the original [sapiuwu/jin](https://github.com/sapiuwu/jin), which focused on ethical port scanning and DDoS attack simulation for educational purposes. Starting with version 2.3.0, Jin shifts its focus to ethical OSINT and recon activities, empowering users to gather information about targets securely and responsibly. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
+Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Source Intelligence) and reconnaissance. It gathers server, network, and technology-stack information about a target using passive, safe techniques — no active exploitation. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
 ## Overview
 
@@ -18,10 +18,18 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 
 ## Installation
 
+### Homebrew (recommended)
+
+```sh
+brew tap sapiuwu/jin
+brew install jin
+```
+
 ### Prerequisites
 
-- Go 1.25 or higher (for building from source)
-- Docker (for containerized usage)
+- [Homebrew](https://brew.sh) (for the tap above)
+- Go 1.25 or higher (to build from source)
+- Docker (optional, for containerized usage)
 
 ### From Source
 
@@ -50,22 +58,22 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 
 ### Using Docker
 
-1. Pull the image from Docker Hub (once pushed):
+1. Pull an image from Docker Hub (built per base image, e.g. `alpine-latest`, `debian-bookworm`, `ubuntu-24.04`):
 
    ```
-   docker pull wahyouka/jin:v2.3.0
+   docker pull wahyouka/jin:v2.3.0-alpine-latest
    ```
 
 2. Run the CLI interactively:
 
    ```
-   docker run -it --entrypoint jin wahyouka/jin:v2.3.0
+   docker run -it --entrypoint jin wahyouka/jin:v2.3.0-alpine-latest
    ```
 
    Run a one-shot command:
 
    ```
-   docker run -it wahyouka/jin:v2.3.0 ports -t example.com
+   docker run -it wahyouka/jin:v2.3.0-alpine-latest ports -t example.com
    ```
 
 3. (Optional) Build the image locally:
@@ -122,4 +130,4 @@ The tools in this project are intended for ethical and educational purposes only
 
 ## About
 
-Jin is a reimagined version of the original [sapiuwu/jin](https://github.com/sapiuwu/jin), transitioning from ethical DDoS simulation to a comprehensive OSINT and recon toolkit. This shift reflects our commitment to supporting security research and education.
+Jin began as [sapiuwu/jin](https://github.com/sapiuwu/jin), a project focused on ethical port scanning and DDoS simulation for educational purposes. It has since been rewritten in Go and repurposed as a passive OSINT and recon toolkit for security research and education.
