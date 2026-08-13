@@ -34,14 +34,20 @@ type infoEnvelope struct {
 	DurationMs int64                  `json:"duration_ms"`
 }
 
-func (a *App) renderInfo(res *in.ServerInfoResult, outputJSON bool) error {
-	if outputJSON {
+func (a *App) renderInfo(res *in.ServerInfoResult, wantJSON bool) error {
+	if wantJSON {
 		return a.renderInfoJSON(res)
 	}
 	return a.renderInfoHuman(res)
 }
 
 func (a *App) renderInfoJSON(res *in.ServerInfoResult) error {
+	return a.emitJSON(buildInfoEnvelope(res))
+}
+
+// buildInfoEnvelope assembles the JSON report for a server-info scan. It is
+// reused by the combined `scan` report so the two shapes match.
+func buildInfoEnvelope(res *in.ServerInfoResult) infoEnvelope {
 	data := &serverInfoResponse{
 		URL:            res.Info.URL,
 		StatusCode:     res.Info.StatusCode,
@@ -52,13 +58,12 @@ func (a *App) renderInfoJSON(res *in.ServerInfoResult) error {
 		TLSCipherSuite: res.Info.TLSCipherSuite,
 		Headers:        res.Info.Headers,
 	}
-	env := infoEnvelope{
+	return infoEnvelope{
 		Data:       data,
 		Security:   res.Security,
 		ScannedAt:  time.Now(),
 		DurationMs: res.Duration.Milliseconds(),
 	}
-	return writeJSON(a.out, env)
 }
 
 func (a *App) renderInfoHuman(res *in.ServerInfoResult) error {

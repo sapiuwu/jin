@@ -13,9 +13,19 @@ type TechStackResult struct {
 	Duration time.Duration
 }
 
+// TechStackOptions controls a tech-stack scan's behaviour.
+type TechStackOptions struct {
+	// Deep enables passive subdomain discovery + DNS record lookup.
+	Deep bool
+	// CVE enables a cross-reference of detected (versioned) technologies
+	// against the NVD advisory database.
+	CVE bool
+}
+
 // TechStackService fingerprints the technology stack of a target. When
-// deep is true, implementations should also discover subdomains and DNS
-// records for the root domain.
+// Deep is true, implementations should also discover subdomains and DNS
+// records for the root domain. When CVE is true, they should attach known
+// vulnerabilities to detected technologies.
 type TechStackService interface {
-	Scan(ctx context.Context, target string, deep bool) (*TechStackResult, error)
+	Scan(ctx context.Context, target string, opts TechStackOptions) (*TechStackResult, error)
 }

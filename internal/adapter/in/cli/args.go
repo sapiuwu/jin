@@ -10,14 +10,19 @@ import (
 type parsedArgs struct {
 	json        bool
 	subdomains  bool
+	cve         bool
+	failOnLow   bool
 	help        bool
+	output      string
+	minGrade    string
 	customPorts []int
 	positionals []string
 }
 
 // parseArgs interprets flags and collects the remaining positional
 // arguments. Flags may appear anywhere; "-t/--target" and "-p/--ports"
-// consume the following token as their value.
+// consume the following token as their value. "-o/--output" consumes the
+// path for a JSON report.
 func parseArgs(args []string) (parsedArgs, error) {
 	var p parsedArgs
 
@@ -28,8 +33,24 @@ func parseArgs(args []string) (parsedArgs, error) {
 			p.json = true
 		case "--subdomains", "-s":
 			p.subdomains = true
+		case "--cve":
+			p.cve = true
+		case "--fail-on-low":
+			p.failOnLow = true
 		case "--help", "-h":
 			p.help = true
+		case "-o", "--output":
+			if i+1 >= len(args) {
+				return p, fmt.Errorf("flag %s requires a value", a)
+			}
+			i++
+			p.output = args[i]
+		case "--min-grade":
+			if i+1 >= len(args) {
+				return p, fmt.Errorf("flag %s requires a value", a)
+			}
+			i++
+			p.minGrade = args[i]
 		case "-p", "--ports":
 			if i+1 >= len(args) {
 				return p, fmt.Errorf("flag %s requires a value", a)

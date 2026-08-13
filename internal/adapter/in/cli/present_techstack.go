@@ -15,10 +15,11 @@ import (
 // --- JSON shapes -------------------------------------------------------
 
 type techEntry struct {
-	Name       string   `json:"name"`
-	Version    string   `json:"version,omitempty"`
-	Confidence int      `json:"confidence"`
-	Evidence   []string `json:"evidence,omitempty"`
+	Name       string       `json:"name"`
+	Version    string       `json:"version,omitempty"`
+	Confidence int          `json:"confidence"`
+	Evidence   []string     `json:"evidence,omitempty"`
+	CVEs       []domain.CVE `json:"cves,omitempty"`
 }
 
 type subdomainEntry struct {
@@ -41,14 +42,20 @@ type techStackEnvelope struct {
 
 // --- Rendering ----------------------------------------------------------
 
-func (a *App) renderTechStack(res *in.TechStackResult, outputJSON bool) error {
-	if outputJSON {
+func (a *App) renderTechStack(res *in.TechStackResult, wantJSON bool) error {
+	if wantJSON {
 		return a.renderTechStackJSON(res)
 	}
 	return a.renderTechStackHuman(res)
 }
 
 func (a *App) renderTechStackJSON(res *in.TechStackResult) error {
+	return a.emitJSON(buildTechStackEnvelope(res))
+}
+
+// buildTechStackEnvelope assembles the JSON report for a tech-stack scan.
+// It is reused by the combined `scan` report so the two shapes match.
+func buildTechStackEnvelope(res *in.TechStackResult) techStackEnvelope {
 	info := res.Info
 	env := techStackEnvelope{
 		URL:        info.URL,
@@ -70,6 +77,7 @@ func (a *App) renderTechStackJSON(res *in.TechStackResult) error {
 					Version:    t.Version,
 					Confidence: score,
 					Evidence:   t.Evidence,
+					CVEs:       t.CVEs,
 				})
 			}
 			env.Categories[cat] = entries
@@ -86,7 +94,7 @@ func (a *App) renderTechStackJSON(res *in.TechStackResult) error {
 		})
 	}
 
-	return writeJSON(a.out, env)
+	return env
 }
 
 func (a *App) renderTechStackHuman(res *in.TechStackResult) error {
@@ -192,6 +200,9 @@ func (a *App) printByCategory(techs []domain.Technology) {
 			fmt.Fprintf(tw, "  %s\t%s\n", name, a.confidenceBadge(score, label))
 			for _, e := range t.Evidence {
 				fmt.Fprintf(tw, "    • %s\t\n", e)
+			}
+			for _, c := range t.CVEs {
+				fmt.Fprintf(tw, "    🔴 %s %s\n", a.red(c.ID), c.URL)
 			}
 		}
 	}

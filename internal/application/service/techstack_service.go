@@ -17,9 +17,11 @@ type TechStackService struct {
 	detector   out.TechStackDetector
 	subdomains out.SubdomainEnumerator // optional; nil disables subdomain discovery
 	dns        out.DNSLookuper         // optional; nil disables DNS record lookup
+	cve        out.CVEChecker          // optional; nil disables CVE cross-reference
 	timeout    time.Duration
 	maxSubs    int // cap on how many discovered subdomains get individually scanned
 	subWorkers int // concurrency for per-subdomain scans
+	cveWorkers int // concurrency for CVE checks
 }
 
 // TechStackOption configures optional capabilities of the use case.
@@ -35,6 +37,12 @@ func WithSubdomainEnumerator(e out.SubdomainEnumerator) TechStackOption {
 // part of deep scans.
 func WithDNSLookuper(d out.DNSLookuper) TechStackOption {
 	return func(s *TechStackService) { s.dns = d }
+}
+
+// WithCVEChecker enables a CVE cross-reference of detected (versioned)
+// technologies against a vulnerability database.
+func WithCVEChecker(c out.CVEChecker) TechStackOption {
+	return func(s *TechStackService) { s.cve = c }
 }
 
 // WithMaxSubdomains caps how many discovered subdomains get individually
@@ -58,14 +66,24 @@ func WithSubdomainConcurrency(n int) TechStackOption {
 	}
 }
 
+// WithCVEConcurrency sets how many CVE checks run in parallel. Default: 4.
+func WithCVEConcurrency(n int) TechStackOption {
+	return func(s *TechStackService) {
+		if n > 0 {
+			s.cveWorkers = n
+		}
+	}
+}
+
 // NewTechStackService builds the use case. Deep-scan sources (subdomain
-// enumeration, DNS) are optional and enabled via options.
+// enumeration, DNS, CVE) are optional and enabled via options.
 func NewTechStackService(detector out.TechStackDetector, timeout time.Duration, opts ...TechStackOption) *TechStackService {
 	s := &TechStackService{
 		detector:   detector,
 		timeout:    timeout,
 		maxSubs:    25,
 		subWorkers: 8,
+		cveWorkers: 4,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -75,17 +93,17 @@ func NewTechStackService(detector out.TechStackDetector, timeout time.Duration, 
 
 var _ in.TechStackService = (*TechStackService)(nil)
 
-// Scan fingerprints target. When deep is true and the optional sources are
-// configured, it also discovers subdomains (passively, via certificate
-// transparency), fingerprints each one, and reports DNS records for the
-// root domain. Deep scans take meaningfully longer since they involve one
-// HTTP request per discovered subdomain.
-func (s *TechStackService) Scan(ctx context.Context, target string, deep bool) (*in.TechStackResult, error) {
+// Scan fingerprints target. When opts.Deep is true and the optional sources
+// are configured, it also discovers subdomains (passively, via certificate
+// transparency), fingerprints each one, and reports DNS records for the root
+// domain. When opts.CVE is true, detected versioned technologies are
+// cross-referenced against the vulnerability database.
+func (s *TechStackService) Scan(ctx context.Context, target string, opts in.TechStackOptions) (*in.TechStackResult, error) {
 	// The overall timeout scales with deep scans since they fan out into
 	// many additional requests; a single flat budget would starve
 	// subdomain scanning on anything but tiny domains.
 	overall := s.timeout
-	if deep {
+	if opts.Deep {
 		overall = s.timeout * time.Duration(s.maxSubs+2)
 	}
 	ctx, cancel := context.WithTimeout(ctx, overall)
@@ -97,7 +115,7 @@ func (s *TechStackService) Scan(ctx context.Context, target string, deep bool) (
 		return nil, err
 	}
 
-	if deep {
+	if opts.Deep {
 		root := rootDomain(target)
 		if root != "" {
 			info.Subdomains = s.scanSubdomains(ctx, root)
@@ -105,7 +123,49 @@ func (s *TechStackService) Scan(ctx context.Context, target string, deep bool) (
 		}
 	}
 
+	if opts.CVE && s.cve != nil {
+		s.checkCVE(ctx, info)
+	}
+
 	return &in.TechStackResult{Info: info, Duration: time.Since(start)}, nil
+}
+
+// checkCVE attaches known vulnerabilities to each detected technology that
+// has a version and a known CPE mapping. Checks run concurrently but never
+// abort the scan on failure — errors simply yield no results for that tech.
+func (s *TechStackService) checkCVE(ctx context.Context, info *domain.TechStackInfo) {
+	type job struct {
+		idx  int
+		tech *domain.Technology
+	}
+	var jobs []job
+	for i := range info.Technologies {
+		t := &info.Technologies[i]
+		if t.Version != "" {
+			jobs = append(jobs, job{i, t})
+		}
+	}
+	if len(jobs) == 0 {
+		return
+	}
+
+	sem := make(chan struct{}, s.cveWorkers)
+	var wg sync.WaitGroup
+	for _, j := range jobs {
+		wg.Add(1)
+		go func(j job) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			subCtx, cancel := context.WithTimeout(ctx, s.timeout)
+			defer cancel()
+			cves, err := s.cve.Check(subCtx, j.tech.Name, j.tech.Version)
+			if err == nil && len(cves) > 0 {
+				j.tech.CVEs = cves
+			}
+		}(j)
+	}
+	wg.Wait()
 }
 
 // scanSubdomains discovers subdomains of root and fingerprints each one

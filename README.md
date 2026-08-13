@@ -2,7 +2,7 @@
 
 <img src="./public/jin-demo.gif">
 
-**Version: 2.3.0**
+**Version: 2.4.0**
 
 Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Source Intelligence) and reconnaissance. It gathers server, network, and technology-stack information about a target using passive, safe techniques — no active exploitation. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
@@ -10,11 +10,30 @@ Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Sourc
 
 Jin provides a suite of commands to assist with network reconnaissance, domain analysis, and vulnerability assessment. Built with Go, it is lightweight, portable, and containerizable with Docker, making it accessible for security researchers, students, and enthusiasts.
 
-## Current Tools
+## Commands
 
-- **info**: Full server reconnaissance — response headers, TLS version, and security checks for the given URL.
+- **info**: Full server reconnaissance — response headers, TLS version, and a weighted **security grade** (0–100, A+→F). Ideal for quick posture checks.
 - **ports**: Scan for open ports using a TCP connect scan (custom port lists supported).
-- **tech-stack**: Fingerprint the technology stack (CMS, server, frameworks, JS libraries, CDN), with optional subdomain and DNS discovery.
+- **tech-stack**: Fingerprint the technology stack (CMS, server, frameworks, JS libraries, CDN) with confidence levels and evidence. Add `--subdomains` for passive subdomain + DNS discovery, and `--cve` to cross-reference detected versions against the NVD.
+- **dns**: Resolve a domain's DNS records (nameservers, MX, TXT).
+- **subdomains**: Enumerate subdomains passively via certificate transparency logs (crt.sh).
+- **whois**: Registration data (RDAP) for a domain — registrar, creation/expiry, nameservers.
+- **scan**: One combined report covering `info` + `ports` + `tech-stack` (accepts the same flags).
+- **diff**: Compare two saved JSON reports and print what changed.
+- **completions**: Emit a shell completion script (`bash`, `zsh`, or `fish`).
+
+## Shared flags
+
+| Flag | Description |
+| --- | --- |
+| `-t, --target <host>` | Target URL or host (most commands). |
+| `-j, --json` | Output as JSON (for piping/automation). |
+| `-o, --output <file>` | Write the JSON report to a file instead of stdout. |
+| `-p, --ports <list>` | Custom ports for the `ports`/`scan` commands (comma-separated). |
+| `-s, --subdomains` | Include subdomain + DNS discovery (`tech-stack`/`scan`). |
+| `--cve` | Cross-reference detected versions against NVD advisories (`tech-stack`/`scan`). |
+| `--min-grade <grade>` | CI gate: exit non-zero if the security grade is below this (e.g. `B`). |
+| `--fail-on-low` | CI gate: exit non-zero if the security grade is below `C`. |
 
 ## Installation
 
@@ -92,7 +111,10 @@ Running `jin` with no arguments starts an interactive session. Type any of the c
 jin
 jin> https://example.com
 jin> ports -t example.com -p 80,443
-jin> tech-stack -t example.com --subdomains
+jin> tech-stack -t example.com --subdomains --cve
+jin> dns -t example.com
+jin> whois -t example.com
+jin> scan -t example.com -o report.json
 jin> exit
 ```
 

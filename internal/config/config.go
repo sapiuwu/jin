@@ -12,6 +12,8 @@ type Config struct {
 	PortConnectTimeout   time.Duration
 	TechStackTimeout     time.Duration
 	SubdomainTimeout     time.Duration
+	WhoisTimeout         time.Duration
+	CVETimeout           time.Duration
 	DefaultPorts         []int
 	MaxSubdomains        int
 	SubdomainConcurrency int
@@ -25,6 +27,8 @@ func Default() Config {
 		PortConnectTimeout:   3 * time.Second,
 		TechStackTimeout:     10 * time.Second,
 		SubdomainTimeout:     15 * time.Second,
+		WhoisTimeout:         15 * time.Second,
+		CVETimeout:           15 * time.Second,
 		DefaultPorts:         []int{21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 5432, 6379, 27017},
 		MaxSubdomains:        25,
 		SubdomainConcurrency: 8,

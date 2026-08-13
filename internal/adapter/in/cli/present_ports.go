@@ -12,9 +12,9 @@ type portScanResponse struct {
 	OpenPorts []domain.PortInfo `json:"open_ports"`
 }
 
-func (a *App) renderPorts(res *in.PortScanResult, outputJSON bool) error {
-	if outputJSON {
-		return writeJSON(a.out, portScanResponse{OpenPorts: filterOpen(res.Results)})
+func (a *App) renderPorts(res *in.PortScanResult, wantJSON bool) error {
+	if wantJSON {
+		return a.emitJSON(portScanResponse{OpenPorts: filterOpen(res.Results)})
 	}
 
 	fmt.Fprintln(a.out, "🔍 Open ports:")

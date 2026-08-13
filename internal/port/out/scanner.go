@@ -41,3 +41,15 @@ type SubdomainEnumerator interface {
 type DNSLookuper interface {
 	Lookup(ctx context.Context, domain string) (*domain.DNSInfo, error)
 }
+
+// WhoisProvider retrieves passive registration data for a domain.
+type WhoisProvider interface {
+	Lookup(ctx context.Context, domain string) (*domain.WhoisInfo, error)
+}
+
+// CVEChecker cross-references a detected technology (by name and version)
+// against a vulnerability database. Implementations should be best-effort:
+// network failures or missing mappings simply yield no results.
+type CVEChecker interface {
+	Check(ctx context.Context, name, version string) ([]domain.CVE, error)
+}

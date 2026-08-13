@@ -14,7 +14,12 @@ func main() {
 	// then hand its driving ports to the CLI adapter.
 	cfg := config.Default()
 	c := container.New(cfg)
-	app := cli.NewApp(c.ServerInfo, c.PortScan, c.TechStack)
+	app := cli.NewApp(c.ServerInfo, c.PortScan, c.TechStack,
+		cli.WithDNS(c.DNS),
+		cli.WithSubdomains(c.Subdomains),
+		cli.WithWhois(c.Whois),
+		cli.WithFullScan(c.FullScan),
+	)
 
 	// With no arguments, enter the interactive REPL; otherwise run a
 	// one-shot command (kept for scripting/Docker use).

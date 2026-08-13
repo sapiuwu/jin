@@ -53,4 +53,8 @@ type Technology struct {
 	// Evidence lists the concrete signals that led to this detection,
 	// e.g. "Header: X-Powered-By: WordPress", "Meta tag: generator=WordPress 6.5".
 	Evidence []string `json:"evidence,omitempty"`
+
+	// CVEs is populated when a CVE cross-reference runs and the detected
+	// version has known advisories. Empty otherwise.
+	CVEs []CVE `json:"cves,omitempty"`
 }
