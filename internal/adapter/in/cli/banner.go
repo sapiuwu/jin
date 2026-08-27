@@ -9,7 +9,7 @@ const bannerArt = `
  |_____/  /__/  /__/    \__/
 `
 
-const bannerText = ` v2.4.0
+const bannerText = ` v2.4.1
 
   🔍 Just Intelligence Network
   CLI for server & network reconnaissance

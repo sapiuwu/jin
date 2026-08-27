@@ -2,7 +2,7 @@
 
 <img src="./public/jin-demo.gif">
 
-**Version: 2.4.0**
+**Version: 2.4.1**
 
 Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Source Intelligence) and reconnaissance. It gathers server, network, and technology-stack information about a target using passive, safe techniques — no active exploitation. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
@@ -80,22 +80,49 @@ brew install jin
 1. Pull an image from Docker Hub (built per base image, e.g. `alpine-latest`, `debian-bookworm`, `ubuntu-24.04`):
 
    ```
-   docker pull wahyouka/jin:v2.3.0-alpine-latest
+    docker pull wahyouka/jin:v2.4.1-alpine-latest
    ```
 
-2. Run the CLI interactively:
+2. **Interactive mode (REPL — recommended).** Running with no command
+   enters the REPL: the prompt returns after each command so you can keep
+   investigating. Always add `--rm` so the container is automatically removed
+   when you quit (`exit`/`quit` or `Ctrl+C`) — this prevents leftover
+   ("sampah") containers piling up:
 
    ```
-   docker run -it --entrypoint jin wahyouka/jin:v2.3.0-alpine-latest
+   docker run -it --rm wahyouka/jin:v2.4.1-alpine-latest
    ```
 
-   Run a one-shot command:
+   Inside the REPL you can type commands or a bare URL, e.g.:
 
    ```
-   docker run -it wahyouka/jin:v2.3.0-alpine-latest ports -t example.com
+   jin> https://example.com
+   jin> ports -t example.com -p 80,443
+   jin> dns -t example.com
+   jin> exit
    ```
 
-3. (Optional) Build the image locally:
+3. **One-shot command.** Pass the command directly; the program runs once
+   and exits. Add `--rm` to clean up the container automatically:
+
+   ```
+   docker run -it --rm wahyouka/jin:v2.4.1-alpine-latest ports -t example.com
+   docker run -it --rm wahyouka/jin:v2.4.1-alpine-latest dns -t example.com
+   docker run -it --rm wahyouka/jin:v2.4.1-alpine-latest subdomains -t example.com
+   ```
+
+4. **Reuse a single container (no `--rm`).** `docker run` always creates a
+   new container, so if you prefer one persistent container, give it a name
+   and reconnect or run commands into it:
+
+   ```
+   docker run -it --name jin-session wahyouka/jin:v2.4.1-alpine-latest   # then quit
+   docker start -ai jin-session                                          # reconnect to REPL
+   docker exec -it jin-session ports -t example.com                      # run a command inside it
+   docker rm -f jin-session                                              # remove when done
+   ```
+
+5. (Optional) Build the image locally:
    ```
    docker build -t <yourusername>/jin:latest .
    docker push <yourusername>/jin:latest

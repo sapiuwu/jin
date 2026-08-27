@@ -102,7 +102,7 @@ func (c *NVDChecker) Check(ctx context.Context, name, version string) ([]domain.
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "jin-cve-checker/2.3.0")
+	req.Header.Set("User-Agent", "jin-cve-checker/2.4.1")
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err

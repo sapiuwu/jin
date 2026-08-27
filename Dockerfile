@@ -35,4 +35,7 @@ COPY --from=builder /app/jin /usr/local/bin/jin
 
 # USER jinuser
 ENTRYPOINT ["jin"]
-CMD ["--help"]
+# Empty CMD so `docker run -it jin` enters the interactive REPL instead of
+# printing --help and exiting. Pass a command (e.g. `ports -t example.com`)
+# for one-shot use.
+CMD []
