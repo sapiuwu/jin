@@ -1,5 +1,7 @@
 # Jin: Your Passive OSINT & Recon CLI Toolkit
 
+[![Sponsor sapiuwu](https://img.shields.io/badge/Sponsor-sapiuwu-pink?logo=github)](https://github.com/sponsors/sapiuwu)
+
 <img src="./public/jin-demo.gif">
 
 **Version: 2.4.1**
