@@ -53,3 +53,34 @@ type WhoisProvider interface {
 type CVEChecker interface {
 	Check(ctx context.Context, name, version string) ([]domain.CVE, error)
 }
+
+// CookieAnalyzer inspects the Set-Cookie attributes returned by a target and
+// reports any missing security flags (Secure/HttpOnly/SameSite).
+type CookieAnalyzer interface {
+	Analyze(ctx context.Context, url string) (*domain.CookieAnalysis, error)
+}
+
+// TLSInspector performs a deep TLS handshake against a host and reports the
+// negotiated protocol, cipher suite, certificate chain, and posture issues.
+type TLSInspector interface {
+	Inspect(ctx context.Context, host string) (*domain.TLSReport, error)
+}
+
+// WaybackLister discovers historic URLs for a domain via the Internet
+// Archive's Wayback Machine CDX API (passive URL enumeration).
+type WaybackLister interface {
+	List(ctx context.Context, domain string) (*domain.WaybackResult, error)
+}
+
+// ExposedChecker probes a target for commonly-misconfigured files and paths
+// (robots.txt, sitemap.xml, .git, .env, security.txt, backups) that may
+// leak source or credentials when left publicly accessible.
+type ExposedChecker interface {
+	Check(ctx context.Context, url string) (*domain.ExposedResult, error)
+}
+
+// CDNDetector determines whether a target is fronted by a CDN/WAF and
+// whether its origin server appears to be directly reachable.
+type CDNDetector interface {
+	Detect(ctx context.Context, domain string) (*domain.CDNResult, error)
+}

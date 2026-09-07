@@ -15,6 +15,8 @@ type parsedArgs struct {
 	help        bool
 	output      string
 	minGrade    string
+	format      string
+	interval    int
 	customPorts []int
 	positionals []string
 }
@@ -39,6 +41,22 @@ func parseArgs(args []string) (parsedArgs, error) {
 			p.failOnLow = true
 		case "--help", "-h":
 			p.help = true
+		case "--format":
+			if i+1 >= len(args) {
+				return p, fmt.Errorf("flag %s requires a value", a)
+			}
+			i++
+			p.format = strings.ToLower(args[i])
+		case "--interval":
+			if i+1 >= len(args) {
+				return p, fmt.Errorf("flag %s requires a value", a)
+			}
+			i++
+			n, err := strconv.Atoi(args[i])
+			if err != nil {
+				return p, fmt.Errorf("invalid --interval %q: %w", args[i], err)
+			}
+			p.interval = n
 		case "-o", "--output":
 			if i+1 >= len(args) {
 				return p, fmt.Errorf("flag %s requires a value", a)

@@ -9,6 +9,17 @@ type TechStackInfo struct {
 	Technologies []Technology    `json:"technologies"`
 	Subdomains   []SubdomainInfo `json:"subdomains,omitempty"`
 	DNS          *DNSInfo        `json:"dns,omitempty"`
+	Favicon      *FaviconInfo    `json:"favicon,omitempty"`
+}
+
+// FaviconInfo reports the mmh3 (MurmurHash3 x86-32) hash of the target's
+// /favicon.ico. This hash is a stable fingerprint: well-known platforms
+// publish theirs (e.g. WordPress, Jenkins, Grafana), so a match can identify
+// a technology even when headers/cookies have been stripped.
+type FaviconInfo struct {
+	URL        string `json:"url"`
+	Hash       int32  `json:"hash"`
+	Technology string `json:"technology,omitempty"`
 }
 
 // SubdomainInfo captures the fingerprinting result for a single discovered

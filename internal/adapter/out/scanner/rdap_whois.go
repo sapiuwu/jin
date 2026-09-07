@@ -20,9 +20,10 @@ type RDAPWhoisProvider struct {
 	client *http.Client
 }
 
-// NewRDAPWhoisProvider builds the adapter.
-func NewRDAPWhoisProvider(timeout time.Duration) out.WhoisProvider {
-	return &RDAPWhoisProvider{client: &http.Client{Timeout: timeout}}
+// NewRDAPWhoisProvider builds the adapter, routed through an optional
+// upstream proxy ("" for a direct connection).
+func NewRDAPWhoisProvider(timeout time.Duration, proxy string) out.WhoisProvider {
+	return &RDAPWhoisProvider{client: newHTTPClient(timeout, proxy)}
 }
 
 type rdapResponse struct {

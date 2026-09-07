@@ -22,9 +22,10 @@ type NVDChecker struct {
 	client *http.Client
 }
 
-// NewNVDChecker builds the adapter.
-func NewNVDChecker(timeout time.Duration) out.CVEChecker {
-	return &NVDChecker{client: &http.Client{Timeout: timeout}}
+// NewNVDChecker builds the adapter, routed through an optional upstream
+// proxy ("" for a direct connection).
+func NewNVDChecker(timeout time.Duration, proxy string) out.CVEChecker {
+	return &NVDChecker{client: newHTTPClient(timeout, proxy)}
 }
 
 // cpeTriplet maps a detected technology name to its NVD CPE

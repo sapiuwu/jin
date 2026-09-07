@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,26 +21,10 @@ type HTTPServerScanner struct {
 	client *http.Client
 }
 
-// NewHTTPServerScanner builds the adapter with the given request budget.
-func NewHTTPServerScanner(timeout time.Duration) *HTTPServerScanner {
-	return &HTTPServerScanner{
-		client: &http.Client{
-			Timeout: timeout,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, // For recon only; user assumes risk
-				},
-				DialContext: (&net.Dialer{
-					Timeout:   5 * time.Second,
-					KeepAlive: 10 * time.Second,
-				}).DialContext,
-				MaxIdleConns:        5,
-				IdleConnTimeout:     15 * time.Second,
-				TLSHandshakeTimeout: 5 * time.Second,
-				DisableKeepAlives:   false,
-			},
-		},
-	}
+// NewHTTPServerScanner builds the adapter with the given request budget and
+// optional upstream proxy ("" for a direct connection).
+func NewHTTPServerScanner(timeout time.Duration, proxy string) *HTTPServerScanner {
+	return &HTTPServerScanner{client: newHTTPClient(timeout, proxy)}
 }
 
 // Scan implements out.ServerScanner.

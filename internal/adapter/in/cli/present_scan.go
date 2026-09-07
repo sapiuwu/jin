@@ -140,3 +140,55 @@ func joinLines(lines []string) string {
 	}
 	return out
 }
+
+// diffStrings flattens two JSON documents (given as strings) and returns a
+// human-readable description of what changed, reusing the same logic as the
+// `diff` command.
+func (a *App) diffStrings(sa, sb string) (string, error) {
+	fa, err := flattenString(sa)
+	if err != nil {
+		return "", err
+	}
+	fb, err := flattenString(sb)
+	if err != nil {
+		return "", err
+	}
+	var lines []string
+	keys := map[string]bool{}
+	for k := range fa {
+		keys[k] = true
+	}
+	for k := range fb {
+		keys[k] = true
+	}
+	sorted := make([]string, 0, len(keys))
+	for k := range keys {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+	for _, k := range sorted {
+		va, oka := fa[k]
+		vb, okb := fb[k]
+		switch {
+		case oka && !okb:
+			lines = append(lines, fmt.Sprintf("%s %s = %s", a.red("-"), k, va))
+		case !oka && okb:
+			lines = append(lines, fmt.Sprintf("%s %s = %s", a.green("+"), k, vb))
+		case oka && okb && va != vb:
+			lines = append(lines, fmt.Sprintf("%s %s: %s → %s", a.yellow("~"), k, va, vb))
+		}
+	}
+	return joinLines(lines), nil
+}
+
+// flattenString parses a JSON document from a string into a flat key→value
+// map, mirroring loadFlat.
+func flattenString(raw string) (map[string]string, error) {
+	var top any
+	if err := json.Unmarshal([]byte(raw), &top); err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	flatten("", top, out)
+	return out, nil
+}

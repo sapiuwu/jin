@@ -23,11 +23,10 @@ type HTTPTechStackDetector struct {
 	client *http.Client
 }
 
-// NewHTTPTechStackDetector builds the adapter with the given request budget.
-func NewHTTPTechStackDetector(timeout time.Duration) out.TechStackDetector {
-	return &HTTPTechStackDetector{
-		client: &http.Client{Timeout: timeout},
-	}
+// NewHTTPTechStackDetector builds the adapter with the given request budget
+// and optional upstream proxy ("" for a direct connection).
+func NewHTTPTechStackDetector(timeout time.Duration, proxy string) out.TechStackDetector {
+	return &HTTPTechStackDetector{client: newHTTPClient(timeout, proxy)}
 }
 
 // maxBodyBytes caps how much HTML we read/scan, to avoid pulling huge pages
@@ -61,10 +60,66 @@ func (d *HTTPTechStackDetector) Detect(ctx context.Context, target string) (*dom
 
 	techs := runSignatures(data)
 
-	return &domain.TechStackInfo{
+	info := &domain.TechStackInfo{
 		URL:          target,
 		Technologies: techs,
-	}, nil
+	}
+
+	// Favicon hashing is a best-effort, auxiliary signal; never let it
+	// fail the whole scan.
+	if fav, err := d.detectFavicon(ctx, target); err == nil && fav != nil {
+		info.Favicon = fav
+	}
+
+	return info, nil
+}
+
+// faviconKnownHashes maps an mmh3 favicon hash to a platform. The table is
+// community-curated; the raw hash is always reported so it can be correlated
+// against up-to-date sources regardless of what's listed here.
+var faviconKnownHashes = map[int32]string{
+	1313520389:  "Grafana",
+	815863182:   "Jenkins",
+	-815863182:  "Jenkins",
+	-1199083082: "Atlassian Jira",
+	1941316437:  "WordPress",
+	-1337370944: "WordPress",
+	-838611071:  "GitLab",
+	838611071:   "GitLab",
+}
+
+// detectFavicon fetches /favicon.ico from the target origin and returns its
+// mmh3 hash. It returns (nil, nil) when there is no favicon or the request
+// fails.
+func (d *HTTPTechStackDetector) detectFavicon(ctx context.Context, target string) (*domain.FaviconInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; jin-techstack-scanner/1.0)")
+
+	resp, err := d.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) == 0 {
+		return nil, nil
+	}
+
+	hash := int32(murmur3x86_32(body, 0))
+	fav := &domain.FaviconInfo{URL: target, Hash: hash}
+	if name, ok := faviconKnownHashes[hash]; ok {
+		fav.Technology = name
+	}
+	return fav, nil
 }
 
 // ---------------------------------------------------------------------------

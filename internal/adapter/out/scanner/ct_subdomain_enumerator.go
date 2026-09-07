@@ -21,9 +21,10 @@ type CTSubdomainEnumerator struct {
 	client *http.Client
 }
 
-// NewCTSubdomainEnumerator builds the adapter backed by crt.sh.
-func NewCTSubdomainEnumerator(timeout time.Duration) out.SubdomainEnumerator {
-	return &CTSubdomainEnumerator{client: &http.Client{Timeout: timeout}}
+// NewCTSubdomainEnumerator builds the adapter backed by crt.sh, routed
+// through an optional upstream proxy ("" for a direct connection).
+func NewCTSubdomainEnumerator(timeout time.Duration, proxy string) out.SubdomainEnumerator {
+	return &CTSubdomainEnumerator{client: newHTTPClient(timeout, proxy)}
 }
 
 type crtShEntry struct {

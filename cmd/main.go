@@ -10,15 +10,21 @@ import (
 )
 
 func main() {
-	// Composition root: build the full application graph from config,
-	// then hand its driving ports to the CLI adapter.
-	cfg := config.Default()
+	// Composition root: build the full application graph from config
+	// (defaults, then optional ~/.jin.json and JIN_* env vars), then hand
+	// its driving ports to the CLI adapter.
+	cfg := config.Load()
 	c := container.New(cfg)
 	app := cli.NewApp(c.ServerInfo, c.PortScan, c.TechStack,
 		cli.WithDNS(c.DNS),
 		cli.WithSubdomains(c.Subdomains),
 		cli.WithWhois(c.Whois),
 		cli.WithFullScan(c.FullScan),
+		cli.WithCookie(c.Cookie),
+		cli.WithTLS(c.TLS),
+		cli.WithWayback(c.Wayback),
+		cli.WithExposed(c.Exposed),
+		cli.WithCDN(c.CDN),
 	)
 
 	// With no arguments, enter the interactive REPL; otherwise run a

@@ -24,9 +24,15 @@ type App struct {
 	subdm     in.SubdomainService
 	whois     in.WhoisService
 	fullscan  in.FullScanService
+	cookie    in.CookieService
+	tls       in.TLSService
+	wayback   in.WaybackService
+	exposed   in.ExposedService
+	cdn       in.CDNService
 	out       io.Writer
 	color     bool
 	output    string          // when set, JSON is written to this file
+	format    string          // "table" (default) or "sarif"
 	baseCtx   context.Context // canceled by Ctrl+C in interactive mode
 }
 
@@ -51,6 +57,21 @@ func WithWhois(s in.WhoisService) Option { return func(a *App) { a.whois = s } }
 // WithFullScan wires the combined scan use case.
 func WithFullScan(s in.FullScanService) Option { return func(a *App) { a.fullscan = s } }
 
+// WithCookie wires the cookie-analysis use case.
+func WithCookie(s in.CookieService) Option { return func(a *App) { a.cookie = s } }
+
+// WithTLS wires the deep TLS inspection use case.
+func WithTLS(s in.TLSService) Option { return func(a *App) { a.tls = s } }
+
+// WithWayback wires the Wayback URL-discovery use case.
+func WithWayback(s in.WaybackService) Option { return func(a *App) { a.wayback = s } }
+
+// WithExposed wires the exposed-files use case.
+func WithExposed(s in.ExposedService) Option { return func(a *App) { a.exposed = s } }
+
+// WithCDN wires the CDN/origin analysis use case.
+func WithCDN(s in.CDNService) Option { return func(a *App) { a.cdn = s } }
+
 // NewApp builds the CLI adapter around the given driving ports.
 func NewApp(info in.ServerInfoService, ports in.PortScanService, techstack in.TechStackService, opts ...Option) *App {
 	a := &App{
@@ -59,6 +80,7 @@ func NewApp(info in.ServerInfoService, ports in.PortScanService, techstack in.Te
 		techstack: techstack,
 		out:       os.Stdout,
 		color:     os.Getenv("NO_COLOR") == "",
+		format:    "table",
 		baseCtx:   context.Background(),
 	}
 	for _, opt := range opts {
@@ -99,15 +121,31 @@ func (a *App) execute(args []string) int {
 		return 1
 	}
 	a.output = p.output
-
-	// Direct URL: jin https://example.com [--json] [--output ...]
-	if len(p.positionals) == 1 {
-		return a.runInfo(p.positionals[0], p)
+	if p.format != "" {
+		a.format = p.format
 	}
 
-	target := p.positionals[1]
+	command := strings.ToLower(p.positionals[0])
 
-	switch command := strings.ToLower(p.positionals[0]); command {
+	// A bare command (e.g. `jin update`) has no explicit target; commands
+	// that need one will report a sensible error. A non-command token is
+	// treated as a direct URL target.
+	if isCommand(command) {
+		target := ""
+		if len(p.positionals) > 1 {
+			target = p.positionals[1]
+		}
+		return a.dispatch(command, target, p)
+	}
+
+	// Direct URL: jin https://example.com [--json] [--output ...]
+	return a.runInfo(p.positionals[0], p)
+}
+
+// dispatch routes a recognized command (with its target, if any) to the
+// appropriate runner. It is shared by one-shot invocations and the REPL.
+func (a *App) dispatch(command, target string, p parsedArgs) int {
+	switch command {
 	case "info":
 		return a.runInfo(target, p)
 	case "ports":
@@ -122,6 +160,22 @@ func (a *App) execute(args []string) int {
 		return a.runWhois(target, p)
 	case "scan":
 		return a.runScan(target, p)
+	case "cookies":
+		return a.runCookies(target, p)
+	case "headers":
+		return a.runHeaders(target, p)
+	case "tls":
+		return a.runTLS(target, p)
+	case "wayback":
+		return a.runWayback(target, p)
+	case "exposed":
+		return a.runExposed(target, p)
+	case "cdn":
+		return a.runCDN(target, p)
+	case "watch":
+		return a.runWatch(target, p)
+	case "update":
+		return a.runUpdate(p)
 	case "diff":
 		if len(p.positionals) < 3 {
 			a.errorf("diff requires two report files: jin diff a.json b.json")
@@ -135,6 +189,17 @@ func (a *App) execute(args []string) int {
 		a.help()
 		return 1
 	}
+}
+
+// isCommand reports whether name is one of Jin's recognized subcommands.
+func isCommand(name string) bool {
+	switch name {
+	case "info", "ports", "tech-stack", "dns", "subdomains", "whois",
+		"cookies", "headers", "tls", "wayback", "exposed", "cdn",
+		"scan", "watch", "update", "diff", "completions", "help":
+		return true
+	}
+	return false
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +216,14 @@ func (a *App) runInfo(target string, p parsedArgs) int {
 		}
 		a.errorf("Error: %v", err)
 		return 1
+	}
+	if a.format == "sarif" {
+		if err := a.renderSARIF(res); err != nil {
+			a.errorf("Error: %v", err)
+			return 1
+		}
+		a.noteOutput()
+		return a.applySecurityGate(res.Security, p)
 	}
 	wantJSON := p.json || a.output != ""
 	if err := a.renderInfo(res, wantJSON); err != nil {
@@ -298,6 +371,16 @@ func (a *App) runScan(target string, p parsedArgs) int {
 	if err != nil {
 		a.errorf("Error: %v", err)
 		return 1
+	}
+	if a.format == "sarif" {
+		if res.Info != nil {
+			if err := a.renderSARIF(res.Info); err != nil {
+				a.errorf("Error: %v", err)
+				return 1
+			}
+		}
+		a.noteOutput()
+		return a.applySecurityGate(res.Info.Security, p)
 	}
 	wantJSON := p.json || a.output != ""
 	if err := a.renderScan(res, wantJSON); err != nil {

@@ -36,6 +36,7 @@ type techStackEnvelope struct {
 	Categories map[string][]techEntry `json:"categories,omitempty"`
 	Subdomains []subdomainEntry       `json:"subdomains,omitempty"`
 	DNS        *domain.DNSInfo        `json:"dns,omitempty"`
+	Favicon    *domain.FaviconInfo    `json:"favicon,omitempty"`
 	ScannedAt  time.Time              `json:"scanned_at"`
 	DurationMs int64                  `json:"duration_ms"`
 }
@@ -63,6 +64,7 @@ func buildTechStackEnvelope(res *in.TechStackResult) techStackEnvelope {
 		ScannedAt:  time.Now(),
 		DurationMs: res.Duration.Milliseconds(),
 		DNS:        info.DNS,
+		Favicon:    info.Favicon,
 	}
 
 	if env.Detected {
@@ -112,6 +114,14 @@ func (a *App) renderTechStackHuman(res *in.TechStackResult) error {
 	if len(info.Technologies) > 0 {
 		fmt.Fprintln(a.out)
 		a.printByCategory(info.Technologies)
+	}
+
+	if info.Favicon != nil {
+		favLine := fmt.Sprintf("%d", info.Favicon.Hash)
+		if info.Favicon.Technology != "" {
+			favLine += "  →  " + info.Favicon.Technology
+		}
+		fmt.Fprintf(a.out, "🖼️  Favicon mmh3 hash: %s\n", a.cyan(favLine))
 	}
 
 	if info.DNS != nil {

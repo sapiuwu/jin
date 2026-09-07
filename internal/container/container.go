@@ -20,17 +20,27 @@ type Container struct {
 	Subdomains in.SubdomainService
 	Whois      in.WhoisService
 	FullScan   in.FullScanService
+	Cookie     in.CookieService
+	TLS        in.TLSService
+	Wayback    in.WaybackService
+	Exposed    in.ExposedService
+	CDN        in.CDNService
 }
 
 // New builds the full application graph from a configuration.
 func New(cfg config.Config) *Container {
-	httpScanner := scanner.NewHTTPServerScanner(cfg.HTTPTimeout)
-	tcpScanner := scanner.NewTCPPortScanner(cfg.PortConnectTimeout)
-	detector := scanner.NewHTTPTechStackDetector(cfg.TechStackTimeout)
-	subdomains := scanner.NewCTSubdomainEnumerator(cfg.SubdomainTimeout)
+	httpScanner := scanner.NewHTTPServerScanner(cfg.HTTPTimeout, cfg.Proxy)
+	tcpScanner := scanner.NewTCPPortScanner(cfg.PortConnectTimeout, cfg.PortConcurrency)
+	detector := scanner.NewHTTPTechStackDetector(cfg.TechStackTimeout, cfg.Proxy)
+	subdomains := scanner.NewCTSubdomainEnumerator(cfg.SubdomainTimeout, cfg.Proxy)
 	dns := scanner.NewDNSLookuper()
-	whois := scanner.NewRDAPWhoisProvider(cfg.WhoisTimeout)
-	cve := scanner.NewNVDChecker(cfg.CVETimeout)
+	whois := scanner.NewRDAPWhoisProvider(cfg.WhoisTimeout, cfg.Proxy)
+	cve := scanner.NewNVDChecker(cfg.CVETimeout, cfg.Proxy)
+	cookieAnalyzer := scanner.NewHTTPCookieAnalyzer(cfg.HTTPTimeout, cfg.Proxy)
+	tlsInspector := scanner.NewTLSInspector(cfg.HTTPTimeout)
+	wayback := scanner.NewWaybackLister(cfg.SubdomainTimeout, cfg.Proxy)
+	exposed := scanner.NewExposedChecker(cfg.HTTPTimeout, cfg.Proxy)
+	cdn := scanner.NewCDNDetector(cfg.HTTPTimeout, cfg.Proxy)
 
 	return &Container{
 		ServerInfo: service.NewServerInfoService(httpScanner, cfg.HTTPTimeout),
@@ -58,5 +68,10 @@ func New(cfg config.Config) *Container {
 				service.WithCVEConcurrency(4),
 			),
 		),
+		Cookie:  service.NewCookieService(cookieAnalyzer, cfg.HTTPTimeout),
+		TLS:     service.NewTLSService(tlsInspector, cfg.HTTPTimeout),
+		Wayback: service.NewWaybackService(wayback, cfg.SubdomainTimeout),
+		Exposed: service.NewExposedService(exposed, cfg.HTTPTimeout),
+		CDN:     service.NewCDNService(cdn, cfg.HTTPTimeout),
 	}
 }

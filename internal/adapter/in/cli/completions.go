@@ -9,11 +9,13 @@ import (
 var (
 	completionCommands = []string{
 		"info", "ports", "tech-stack", "dns", "subdomains", "whois",
-		"scan", "diff", "completions", "help", "exit", "quit",
+		"cookies", "headers", "tls", "wayback", "exposed", "cdn",
+		"scan", "watch", "update", "diff", "completions", "help", "exit", "quit",
 	}
 	completionFlags = []string{
 		"-t", "--target", "-p", "--ports", "-j", "--json", "-s", "--subdomains",
-		"--cve", "-o", "--output", "--min-grade", "--fail-on-low", "-h", "--help",
+		"--cve", "-o", "--output", "--format", "--interval",
+		"--min-grade", "--fail-on-low", "-h", "--help",
 	}
 )
 
