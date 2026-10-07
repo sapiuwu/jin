@@ -104,14 +104,3 @@ func parsePortList(raw string) ([]int, error) {
 	}
 	return ports, nil
 }
-
-// cleanHost strips any scheme and path from a target, leaving a bare
-// hostname suitable for a port scan.
-func cleanHost(input string) string {
-	host := strings.TrimPrefix(input, "https://")
-	host = strings.TrimPrefix(host, "http://")
-	if i := strings.Index(host, "/"); i != -1 {
-		host = host[:i]
-	}
-	return host
-}

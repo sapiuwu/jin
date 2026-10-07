@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 	"github.com/aliftech/jin/internal/port/in"
 	"github.com/aliftech/jin/internal/port/out"
 )
@@ -116,7 +115,7 @@ func (s *TechStackService) Scan(ctx context.Context, target string, opts in.Tech
 	}
 
 	if opts.Deep {
-		root := rootDomain(target)
+		root := hostutil.RootDomain(target)
 		if root != "" {
 			info.Subdomains = s.scanSubdomains(ctx, root)
 			info.DNS = s.lookupDNS(ctx, root)
@@ -221,24 +220,4 @@ func (s *TechStackService) lookupDNS(ctx context.Context, root string) *domain.D
 		return nil
 	}
 	return info
-}
-
-// rootDomain extracts a bare hostname from a URL or host:port string, for
-// use as the subdomain-enumeration / DNS-lookup query. Note: this uses a
-// naive last-two-labels heuristic and does not handle multi-part public
-// suffixes correctly (e.g. "example.co.uk" would be truncated to
-// "co.uk"). For full correctness, resolve against the public suffix list.
-func rootDomain(target string) string {
-	host := target
-	if u, err := url.Parse(target); err == nil && u.Host != "" {
-		host = u.Host
-	}
-	if i := strings.Index(host, ":"); i != -1 {
-		host = host[:i]
-	}
-	labels := strings.Split(host, ".")
-	if len(labels) <= 2 {
-		return host
-	}
-	return strings.Join(labels[len(labels)-2:], ".")
 }

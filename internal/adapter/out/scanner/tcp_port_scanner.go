@@ -2,12 +2,12 @@ package scanner
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 )
 
 // TCPPortScanner is an out.PortScanner adapter that performs a TCP connect
@@ -36,8 +36,11 @@ func NewTCPPortScanner(connectTimeout time.Duration, concurrency int) *TCPPortSc
 	}
 }
 
-// Scan implements out.PortScanner.
+// Scan implements out.PortScanner. host may still carry a scheme, a
+// port, or IPv6 brackets (when called with a raw target); it is
+// normalized to a bare host before probing.
 func (s *TCPPortScanner) Scan(ctx context.Context, host string, ports []int) ([]domain.PortInfo, error) {
+	host = hostutil.Host(host)
 	results := make([]domain.PortInfo, len(ports))
 
 	sem := make(chan struct{}, s.concurrency)
@@ -66,7 +69,7 @@ func (s *TCPPortScanner) Scan(ctx context.Context, host string, ports []int) ([]
 // probe dials a single port, retrying with backoff. A port is reported
 // "open" only if at least one attempt succeeds.
 func (s *TCPPortScanner) probe(ctx context.Context, host string, port int) domain.PortInfo {
-	address := fmt.Sprintf("%s:%d", host, port)
+	address := hostutil.DialAddress(host, port)
 	service := portToService(port)
 
 	for attempt := 0; attempt < s.retries; attempt++ {

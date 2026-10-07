@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 	"github.com/aliftech/jin/internal/port/in"
 )
 
@@ -84,7 +85,7 @@ func (a *App) runHeaders(target string, p parsedArgs) int {
 // ---------------------------------------------------------------------------
 
 func (a *App) runTLS(target string, p parsedArgs) int {
-	host := cleanHost(target)
+	host := hostutil.Host(target)
 	a.status("⏳", "Inspecting TLS configuration of %s...", host)
 	res, err := a.tls.Inspect(a.baseCtx, host)
 	if err != nil {
@@ -114,7 +115,7 @@ func (a *App) runTLS(target string, p parsedArgs) int {
 // ---------------------------------------------------------------------------
 
 func (a *App) runWayback(target string, p parsedArgs) int {
-	domain := cleanHost(target)
+	domain := hostutil.Host(target)
 	a.status("⏳", "Discovering archived URLs for %s (Wayback Machine)...", domain)
 	res, err := a.wayback.List(a.baseCtx, domain)
 	if err != nil {
@@ -169,7 +170,7 @@ func (a *App) runExposed(target string, p parsedArgs) int {
 // ---------------------------------------------------------------------------
 
 func (a *App) runCDN(target string, p parsedArgs) int {
-	domain := cleanHost(target)
+	domain := hostutil.Host(target)
 	a.status("⏳", "Analyzing CDN/origin exposure for %s...", domain)
 	res, err := a.cdn.Detect(a.baseCtx, domain)
 	if err != nil {

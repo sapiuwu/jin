@@ -29,6 +29,7 @@ func (a *App) help() {
 	fmt.Fprintln(a.out, "  "+a.cyan("completions")+a.white(" Generate shell completions (bash|zsh|fish)"))
 
 	fmt.Fprintln(a.out, a.white("Flags:"))
+	fmt.Fprintln(a.out, "  "+a.green("-t, --target <host>")+a.white("  Target URL/host (host, host:port, [IPv6]:port, or full URL)"))
 	fmt.Fprintln(a.out, "  "+a.green("-j, --json")+a.white("            Output as JSON"))
 	fmt.Fprintln(a.out, "  "+a.green("-o, --output <file>")+a.white("     Write JSON report to a file"))
 	fmt.Fprintln(a.out, "  "+a.green("--format <fmt>")+a.white("       Output format: table (default) or sarif (info/headers/scan)"))
@@ -48,6 +49,8 @@ func (a *App) help() {
 	fmt.Fprintln(a.out, "  jin")
 	fmt.Fprintln(a.out, "  jin https://example.com")
 	fmt.Fprintln(a.out, "  jin ports -t example.com -p 80,443")
+	fmt.Fprintln(a.out, "  jin ports -t example.com:8080      # scan only the target's port")
+	fmt.Fprintln(a.out, "  jin ports -t \"[::1]:8080\"           # IPv6 target")
 	fmt.Fprintln(a.out, "  jin tech-stack -t example.com --subdomains --cve --json -o report.json")
 	fmt.Fprintln(a.out, "  jin dns -t example.com")
 	fmt.Fprintln(a.out, "  jin whois -t example.com")

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 )
 
 // HTTPServerScanner is an out.ServerScanner adapter that fetches a target
@@ -79,7 +80,7 @@ func (s *HTTPServerScanner) doRequest(ctx context.Context, u *url.URL) (*domain.
 	defer resp.Body.Close()
 
 	domainName := u.Hostname()
-	rootDomain := extractRootDomain(domainName)
+	rootDomain := hostutil.RootDomain(domainName)
 
 	info := &domain.ServerInfo{
 		URL:         u.String(),
@@ -145,21 +146,6 @@ func (s *HTTPServerScanner) enrichSecurityInfo(info *domain.ServerInfo, resp *ht
 				fmt.Sprintf("cookie '%s' missing HttpOnly flag", cookieName))
 		}
 	}
-}
-
-// Simple root domain extractor (assumes public suffix is 2 parts for simplicity)
-// For production, consider using github.com/weppos/publicsuffix-go
-func extractRootDomain(host string) string {
-	host = strings.ToLower(host)
-	if i := strings.Index(host, ":"); i != -1 {
-		host = host[:i]
-	}
-
-	parts := strings.Split(host, ".")
-	if len(parts) >= 2 {
-		return strings.Join(parts[len(parts)-2:], ".")
-	}
-	return host
 }
 
 // detectCloudProvider attempts to identify the cloud/hosting provider

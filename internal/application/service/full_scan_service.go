@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/aliftech/jin/internal/port/in"
@@ -33,17 +32,7 @@ func (s *FullScanService) Scan(ctx context.Context, target string, opts in.FullS
 		res.Info = info
 	}
 
-	host := target
-	if i := strings.Index(host, "://"); i != -1 {
-		host = host[i+3:]
-	}
-	if i := strings.IndexByte(host, '/'); i != -1 {
-		host = host[:i]
-	}
-	if i := strings.IndexByte(host, ':'); i != -1 {
-		host = host[:i]
-	}
-	ports, err := s.ports.Scan(ctx, host, opts.CustomPorts)
+	ports, err := s.ports.Scan(ctx, target, opts.CustomPorts)
 	if err == nil {
 		res.Ports = ports
 	}

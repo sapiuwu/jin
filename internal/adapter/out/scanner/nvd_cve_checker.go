@@ -12,6 +12,7 @@ import (
 
 	"github.com/aliftech/jin/internal/domain"
 	"github.com/aliftech/jin/internal/port/out"
+	appversion "github.com/aliftech/jin/internal/version"
 )
 
 // NVDChecker is an out.CVEChecker adapter that queries the NIST National
@@ -103,7 +104,7 @@ func (c *NVDChecker) Check(ctx context.Context, name, version string) ([]domain.
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "jin-cve-checker/2.4.1")
+	req.Header.Set("User-Agent", "jin-cve-checker/"+appversion.Version)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err

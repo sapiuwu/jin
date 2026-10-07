@@ -4,7 +4,7 @@
 
 <img src="./public/jin-demo.gif">
 
-**Version: 2.4.1**
+**Version: 2.5.0**
 
 Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Source Intelligence) and reconnaissance. It gathers server, network, and technology-stack information about a target using passive, safe techniques — no active exploitation. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
@@ -28,10 +28,10 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 
 | Flag | Description |
 | --- | --- |
-| `-t, --target <host>` | Target URL or host (most commands). |
+| `-t, --target <host>` | Target URL or host for most commands. Accepts `host`, `host:port`, `[IPv6]:port`, and full URLs. |
 | `-j, --json` | Output as JSON (for piping/automation). |
 | `-o, --output <file>` | Write the JSON report to a file instead of stdout. |
-| `-p, --ports <list>` | Custom ports for the `ports`/`scan` commands (comma-separated). |
+| `-p, --ports <list>` | Custom ports for the `ports`/`scan` commands (comma-separated). Wins over a port embedded in the target. |
 | `-s, --subdomains` | Include subdomain + DNS discovery (`tech-stack`/`scan`). |
 | `--cve` | Cross-reference detected versions against NVD advisories (`tech-stack`/`scan`). |
 | `--min-grade <grade>` | CI gate: exit non-zero if the security grade is below this (e.g. `B`). |
@@ -160,6 +160,12 @@ Or, using Docker:
 ```
 docker run -it <yourusername>/jin:latest <command> [options] <url> [options]
 ```
+
+## Roadmap
+
+Planned fixes and improvements are tracked in [ROADMAP.md](./ROADMAP.md)
+(NVD/crt.sh rate limiting & caching, and complete SARIF output). IPv6 /
+`host:port` target parsing shipped in v2.5.0 (Phase 1).
 
 ## Contributing
 

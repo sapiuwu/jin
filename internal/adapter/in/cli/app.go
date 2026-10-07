@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 	"github.com/aliftech/jin/internal/port/in"
 )
 
@@ -239,9 +240,8 @@ func (a *App) runInfo(target string, p parsedArgs) int {
 }
 
 func (a *App) runPorts(target string, p parsedArgs) int {
-	host := cleanHost(target)
-	a.status("⏳", "Scanning open ports on %s...", host)
-	res, err := a.ports.Scan(a.baseCtx, host, p.customPorts)
+	a.status("⏳", "Scanning open ports on %s...", hostutil.Host(target))
+	res, err := a.ports.Scan(a.baseCtx, target, p.customPorts)
 	if err != nil {
 		if a.aborted() {
 			fmt.Fprintln(a.out, "⏹️  Aborted")
@@ -299,7 +299,7 @@ func (a *App) runTechStack(target string, p parsedArgs) int {
 }
 
 func (a *App) runDNS(target string, p parsedArgs) int {
-	domain := cleanHost(target)
+	domain := hostutil.Host(target)
 	a.status("⏳", "Looking up DNS records for %s...", domain)
 	res, err := a.dns.Lookup(a.baseCtx, domain)
 	if err != nil {
@@ -320,7 +320,7 @@ func (a *App) runDNS(target string, p parsedArgs) int {
 }
 
 func (a *App) runSubdomains(target string, p parsedArgs) int {
-	domain := cleanHost(target)
+	domain := hostutil.Host(target)
 	a.status("⏳", "Enumerating subdomains of %s (certificate transparency)...", domain)
 	res, err := a.subdm.Enumerate(a.baseCtx, domain)
 	if err != nil {
@@ -341,7 +341,7 @@ func (a *App) runSubdomains(target string, p parsedArgs) int {
 }
 
 func (a *App) runWhois(target string, p parsedArgs) int {
-	domain := cleanHost(target)
+	domain := hostutil.Host(target)
 	a.status("⏳", "Looking up registration data for %s (RDAP)...", domain)
 	res, err := a.whois.Lookup(a.baseCtx, domain)
 	if err != nil {

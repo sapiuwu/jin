@@ -8,11 +8,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/aliftech/jin/internal/domain"
+	"github.com/aliftech/jin/internal/hostutil"
 	"github.com/aliftech/jin/internal/port/out"
 )
 
@@ -100,20 +100,5 @@ func certToInfo(cert *x509.Certificate) domain.CertInfo {
 // tlsHost strips a scheme, path, and port from a target so it can be used as
 // the TLS ServerName.
 func tlsHost(input string) string {
-	if u, err := url.Parse(input); err == nil && u.Host != "" {
-		host := u.Hostname()
-		if host != "" {
-			return host
-		}
-	}
-	host := strings.ToLower(input)
-	host = strings.TrimPrefix(host, "https://")
-	host = strings.TrimPrefix(host, "http://")
-	if i := strings.Index(host, "/"); i != -1 {
-		host = host[:i]
-	}
-	if i := strings.Index(host, ":"); i != -1 {
-		host = host[:i]
-	}
-	return host
+	return strings.ToLower(hostutil.Host(input))
 }

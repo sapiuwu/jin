@@ -3,4 +3,4 @@
 package version
 
 // Version is the current release of Jin.
-const Version = "2.4.1"
+const Version = "2.5.0"
