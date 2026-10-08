@@ -11,9 +11,10 @@ import (
 
 func main() {
 	// Composition root: build the full application graph from config
-	// (defaults, then optional ~/.jin.json and JIN_* env vars), then hand
-	// its driving ports to the CLI adapter.
+	// (defaults, then optional ~/.jin.json, JIN_* env vars, and finally the
+	// startup config flags), then hand its driving ports to the CLI adapter.
 	cfg := config.Load()
+	config.ApplyArgs(&cfg, os.Args[1:])
 	c := container.New(cfg)
 	app := cli.NewApp(c.ServerInfo, c.PortScan, c.TechStack,
 		cli.WithDNS(c.DNS),

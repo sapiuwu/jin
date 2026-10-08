@@ -16,6 +16,8 @@ var (
 		"-t", "--target", "-p", "--ports", "-j", "--json", "-s", "--subdomains",
 		"--cve", "-o", "--output", "--format", "--interval",
 		"--min-grade", "--fail-on-low", "-h", "--help",
+		"--cache-dir", "--no-cache", "--nvd-cache-ttl", "--ct-cache-ttl",
+		"--nvd-rate-limit",
 	}
 )
 

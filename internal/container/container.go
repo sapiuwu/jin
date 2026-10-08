@@ -29,13 +29,24 @@ type Container struct {
 
 // New builds the full application graph from a configuration.
 func New(cfg config.Config) *Container {
+	// One cache instance per source keeps the on-disk stores separate
+	// (nvd.json / crtsh.json) while letting the shared adapter instances
+	// below memoize across `tech-stack` and `scan` within the same run.
+	nvdCache := scanner.NewCache(cfg.CacheDir, "nvd", cfg.NVDCacheTTL)
+	ctCache := scanner.NewCache(cfg.CacheDir, "crtsh", cfg.CTCacheTTL)
+
 	httpScanner := scanner.NewHTTPServerScanner(cfg.HTTPTimeout, cfg.Proxy)
 	tcpScanner := scanner.NewTCPPortScanner(cfg.PortConnectTimeout, cfg.PortConcurrency)
 	detector := scanner.NewHTTPTechStackDetector(cfg.TechStackTimeout, cfg.Proxy)
-	subdomains := scanner.NewCTSubdomainEnumerator(cfg.SubdomainTimeout, cfg.Proxy)
+	subdomains := scanner.NewCTSubdomainEnumerator(cfg.SubdomainTimeout, cfg.Proxy,
+		scanner.WithCTCache(ctCache))
 	dns := scanner.NewDNSLookuper()
 	whois := scanner.NewRDAPWhoisProvider(cfg.WhoisTimeout, cfg.Proxy)
-	cve := scanner.NewNVDChecker(cfg.CVETimeout, cfg.Proxy)
+	cve := scanner.NewNVDChecker(cfg.CVETimeout, cfg.Proxy,
+		scanner.WithNVDAPIKey(cfg.NVDAPIKey),
+		scanner.WithNVDRateLimit(cfg.NVDRateLimit),
+		scanner.WithNVDCache(nvdCache),
+	)
 	cookieAnalyzer := scanner.NewHTTPCookieAnalyzer(cfg.HTTPTimeout, cfg.Proxy)
 	tlsInspector := scanner.NewTLSInspector(cfg.HTTPTimeout)
 	wayback := scanner.NewWaybackLister(cfg.SubdomainTimeout, cfg.Proxy)

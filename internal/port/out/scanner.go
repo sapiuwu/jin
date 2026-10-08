@@ -6,9 +6,17 @@ package out
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aliftech/jin/internal/domain"
 )
+
+// ErrRateLimited is returned by adapters when the upstream data source
+// throttled the request and results are therefore incomplete. Callers are
+// expected to surface it to the user rather than treating it as "no
+// results" — a throttled lookup and a genuinely empty one look very
+// different. Wrap it with %w to add context.
+var ErrRateLimited = errors.New("rate limited")
 
 // ServerScanner gathers web server info for a URL.
 type ServerScanner interface {
@@ -31,7 +39,9 @@ type TechStackDetector interface {
 
 // SubdomainEnumerator discovers subdomains of a given root domain using
 // passive sources (e.g. certificate transparency logs). It does not
-// actively brute-force or guess hostnames.
+// actively brute-force or guess hostnames. Implementations should retry
+// transient upstream failures before giving up, and may return
+// ErrRateLimited when the source throttled the query.
 type SubdomainEnumerator interface {
 	Enumerate(ctx context.Context, domain string) ([]string, error)
 }
@@ -48,8 +58,11 @@ type WhoisProvider interface {
 }
 
 // CVEChecker cross-references a detected technology (by name and version)
-// against a vulnerability database. Implementations should be best-effort:
-// network failures or missing mappings simply yield no results.
+// against a vulnerability database. Missing CPE mappings simply yield no
+// results. Transient network failures should be retried; when the source
+// throttles the caller, implementations must return an error wrapping
+// ErrRateLimited so the incompleteness can be surfaced instead of being
+// mistaken for "no known CVEs".
 type CVEChecker interface {
 	Check(ctx context.Context, name, version string) ([]domain.CVE, error)
 }

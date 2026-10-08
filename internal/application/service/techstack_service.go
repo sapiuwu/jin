@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +12,10 @@ import (
 	"github.com/aliftech/jin/internal/port/in"
 	"github.com/aliftech/jin/internal/port/out"
 )
+
+// maxScanWarnings caps how many distinct warnings a single scan reports,
+// so a fully throttled run cannot drown the report in per-technology noise.
+const maxScanWarnings = 3
 
 // TechStackService is the tech-stack fingerprinting use case.
 type TechStackService struct {
@@ -97,6 +103,10 @@ var _ in.TechStackService = (*TechStackService)(nil)
 // transparency), fingerprints each one, and reports DNS records for the root
 // domain. When opts.CVE is true, detected versioned technologies are
 // cross-referenced against the vulnerability database.
+//
+// Non-fatal problems encountered along the way (an upstream throttling us,
+// an enumeration failing) are reported in TechStackResult.Warnings instead
+// of being silently folded into "no results".
 func (s *TechStackService) Scan(ctx context.Context, target string, opts in.TechStackOptions) (*in.TechStackResult, error) {
 	// The overall timeout scales with deep scans since they fan out into
 	// many additional requests; a single flat budget would starve
@@ -104,6 +114,13 @@ func (s *TechStackService) Scan(ctx context.Context, target string, opts in.Tech
 	overall := s.timeout
 	if opts.Deep {
 		overall = s.timeout * time.Duration(s.maxSubs+2)
+	}
+	if opts.CVE && s.cve != nil && overall < s.timeout*4 {
+		// NVD is rate limited (5 req/30s unauthenticated ≈ one token per 6s
+		// after the initial burst), so a cross-reference of several
+		// technologies needs room to pace through the limiter instead of
+		// blowing the plain per-request budget and reporting false timeouts.
+		overall = s.timeout * 4
 	}
 	ctx, cancel := context.WithTimeout(ctx, overall)
 	defer cancel()
@@ -114,25 +131,30 @@ func (s *TechStackService) Scan(ctx context.Context, target string, opts in.Tech
 		return nil, err
 	}
 
+	var warnings []string
 	if opts.Deep {
 		root := hostutil.RootDomain(target)
 		if root != "" {
-			info.Subdomains = s.scanSubdomains(ctx, root)
+			subs, warns := s.scanSubdomains(ctx, root)
+			info.Subdomains = subs
+			warnings = append(warnings, warns...)
 			info.DNS = s.lookupDNS(ctx, root)
 		}
 	}
 
 	if opts.CVE && s.cve != nil {
-		s.checkCVE(ctx, info)
+		warnings = append(warnings, s.checkCVE(ctx, info)...)
 	}
 
-	return &in.TechStackResult{Info: info, Duration: time.Since(start)}, nil
+	return &in.TechStackResult{Info: info, Duration: time.Since(start), Warnings: warnings}, nil
 }
 
 // checkCVE attaches known vulnerabilities to each detected technology that
 // has a version and a known CPE mapping. Checks run concurrently but never
-// abort the scan on failure — errors simply yield no results for that tech.
-func (s *TechStackService) checkCVE(ctx context.Context, info *domain.TechStackInfo) {
+// abort the scan on failure: problems are deduplicated and returned as
+// warnings so the user learns that results may be incomplete — a throttled
+// NVD must never look like "this stack has no known CVEs".
+func (s *TechStackService) checkCVE(ctx context.Context, info *domain.TechStackInfo) []string {
 	type job struct {
 		idx  int
 		tech *domain.Technology
@@ -145,7 +167,25 @@ func (s *TechStackService) checkCVE(ctx context.Context, info *domain.TechStackI
 		}
 	}
 	if len(jobs) == 0 {
-		return
+		return nil
+	}
+
+	var (
+		mu       sync.Mutex
+		warnings []string
+	)
+	addWarning := func(msg string) {
+		mu.Lock()
+		defer mu.Unlock()
+		if len(warnings) >= maxScanWarnings {
+			return
+		}
+		for _, w := range warnings {
+			if w == msg {
+				return
+			}
+		}
+		warnings = append(warnings, msg)
 	}
 
 	sem := make(chan struct{}, s.cveWorkers)
@@ -156,29 +196,42 @@ func (s *TechStackService) checkCVE(ctx context.Context, info *domain.TechStackI
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			subCtx, cancel := context.WithTimeout(ctx, s.timeout)
-			defer cancel()
-			cves, err := s.cve.Check(subCtx, j.tech.Name, j.tech.Version)
-			if err == nil && len(cves) > 0 {
-				j.tech.CVEs = cves
+			// The shared context carries the scan-wide budget (scaled for
+			// rate-limited pacing); the HTTP client bounds each request.
+			cves, err := s.cve.Check(ctx, j.tech.Name, j.tech.Version)
+			switch {
+			case err == nil:
+				if len(cves) > 0 {
+					j.tech.CVEs = cves
+				}
+			case errors.Is(err, out.ErrRateLimited):
+				addWarning("NVD rate-limited, CVE results may be incomplete")
+			default:
+				addWarning(fmt.Sprintf("NVD lookup failed: %v", err))
 			}
 		}(j)
 	}
 	wg.Wait()
+	return warnings
 }
 
 // scanSubdomains discovers subdomains of root and fingerprints each one
 // concurrently, bounded by s.subWorkers. Individual failures (host down,
 // timeout, TLS error) are recorded per-subdomain rather than aborting the
-// whole scan.
-func (s *TechStackService) scanSubdomains(ctx context.Context, root string) []domain.SubdomainInfo {
+// whole scan. A failure of the enumeration source itself is returned as a
+// warning instead of being silently reported as "no subdomains".
+func (s *TechStackService) scanSubdomains(ctx context.Context, root string) ([]domain.SubdomainInfo, []string) {
 	if s.subdomains == nil {
-		return nil
+		return nil, nil
 	}
 
 	hosts, err := s.subdomains.Enumerate(ctx, root)
-	if err != nil || len(hosts) == 0 {
-		return nil
+	if err != nil {
+		return nil, []string{fmt.Sprintf(
+			"subdomain enumeration failed (%v), subdomain results may be incomplete", err)}
+	}
+	if len(hosts) == 0 {
+		return nil, nil
 	}
 	if len(hosts) > s.maxSubs {
 		hosts = hosts[:s.maxSubs]
@@ -208,7 +261,7 @@ func (s *TechStackService) scanSubdomains(ctx context.Context, root string) []do
 	}
 	wg.Wait()
 
-	return results
+	return results, nil
 }
 
 func (s *TechStackService) lookupDNS(ctx context.Context, root string) *domain.DNSInfo {

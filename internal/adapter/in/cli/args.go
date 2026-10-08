@@ -85,6 +85,17 @@ func parseArgs(args []string) (parsedArgs, error) {
 			}
 			i++
 			p.positionals = append(p.positionals, args[i])
+		case "--cache-dir", "--nvd-cache-ttl", "--ct-cache-ttl", "--nvd-rate-limit":
+			// Startup config flags: their values are applied to the
+			// configuration once in main (config.ApplyArgs) before the
+			// adapters are built. They are only consumed here so they
+			// never leak into the positionals as a bogus target.
+			if i+1 >= len(args) {
+				return p, fmt.Errorf("flag %s requires a value", a)
+			}
+			i++
+		case "--no-cache":
+			// Startup config flag; see the comment above.
 		default:
 			p.positionals = append(p.positionals, a)
 		}

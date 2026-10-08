@@ -4,7 +4,7 @@
 
 <img src="./public/jin-demo.gif">
 
-**Version: 2.5.0**
+**Version: 2.6.0**
 
 Jin is an open-source command-line interface (CLI) toolkit for OSINT (Open-Source Intelligence) and reconnaissance. It gathers server, network, and technology-stack information about a target using passive, safe techniques — no active exploitation. This tool is intended for ethical and educational use only—please refrain from using it for harmful actions.
 
@@ -36,6 +36,16 @@ Jin provides a suite of commands to assist with network reconnaissance, domain a
 | `--cve` | Cross-reference detected versions against NVD advisories (`tech-stack`/`scan`). |
 | `--min-grade <grade>` | CI gate: exit non-zero if the security grade is below this (e.g. `B`). |
 | `--fail-on-low` | CI gate: exit non-zero if the security grade is below `C`. |
+| `--cache-dir <dir>` | On-disk cache directory for NVD/crt.sh results (default `~/.jin/cache`). |
+| `--no-cache` | Disable the on-disk result cache (per-run dedupe stays on). |
+| `--nvd-cache-ttl <dur>` | TTL for cached NVD CVE lookups (default `24h`). |
+| `--ct-cache-ttl <dur>` | TTL for cached crt.sh enumerations (default `6h`). |
+| `--nvd-rate-limit <n>` | NVD requests per 30s window (default 5, or 50 with an API key). |
+
+NVD queries are rate limited (5 req/30s unauthenticated) and retried with
+backoff on throttling; set `JIN_NVD_API_KEY` (or `nvd_api_key` in
+`~/.jin.json`) to raise the budget to 50 req/30s. Throttling is reported as
+a warning instead of being silently treated as "no CVEs".
 
 ## Installation
 
@@ -164,8 +174,9 @@ docker run -it <yourusername>/jin:latest <command> [options] <url> [options]
 ## Roadmap
 
 Planned fixes and improvements are tracked in [ROADMAP.md](./ROADMAP.md)
-(NVD/crt.sh rate limiting & caching, and complete SARIF output). IPv6 /
-`host:port` target parsing shipped in v2.5.0 (Phase 1).
+(complete SARIF output is next). NVD/crt.sh rate limiting & caching shipped
+in v2.6.0 (Phase 2); IPv6 / `host:port` target parsing shipped in v2.5.0
+(Phase 1).
 
 ## Contributing
 

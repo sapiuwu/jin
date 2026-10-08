@@ -37,6 +37,7 @@ type techStackEnvelope struct {
 	Subdomains []subdomainEntry       `json:"subdomains,omitempty"`
 	DNS        *domain.DNSInfo        `json:"dns,omitempty"`
 	Favicon    *domain.FaviconInfo    `json:"favicon,omitempty"`
+	Warnings   []string               `json:"warnings,omitempty"`
 	ScannedAt  time.Time              `json:"scanned_at"`
 	DurationMs int64                  `json:"duration_ms"`
 }
@@ -65,6 +66,7 @@ func buildTechStackEnvelope(res *in.TechStackResult) techStackEnvelope {
 		DurationMs: res.Duration.Milliseconds(),
 		DNS:        info.DNS,
 		Favicon:    info.Favicon,
+		Warnings:   res.Warnings,
 	}
 
 	if env.Detected {
@@ -131,7 +133,17 @@ func (a *App) renderTechStackHuman(res *in.TechStackResult) error {
 		a.printSubdomains(info.Subdomains)
 	}
 
+	a.printWarnings(res.Warnings)
+
 	return nil
+}
+
+// printWarnings renders completeness caveats (throttling, failed
+// enumeration) so a partial report is never mistaken for a clean one.
+func (a *App) printWarnings(warnings []string) {
+	for _, w := range warnings {
+		fmt.Fprintf(a.out, "%s %s\n", a.yellow("⚠"), w)
+	}
 }
 
 func (a *App) printDNS(dns *domain.DNSInfo) {
