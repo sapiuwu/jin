@@ -10,7 +10,7 @@ IMAGES=(
   "alpine:3.20"
 )
 
-VERSION="wahyouka/jin:v2.4.1"
+VERSION="wahyouka/jin:v2.5.0"
 
 for img in "${IMAGES[@]}"; do
   tag=$(echo "$img" | tr ':' '-')
