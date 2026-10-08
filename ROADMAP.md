@@ -40,27 +40,27 @@ Bugs that produce wrong results today.
   extraction, port precedence, error propagation) using a fake
   `out.PortScanner`.
 
-## Phase 2 — NVD/crt.sh rate limiting & caching (v2.6.0)
+## Phase 2 — NVD/crt.sh rate limiting & caching (v2.6.0) — SHIPPED
 
 Silent false-negatives in `tech-stack --cve` when NVD throttles.
 
-- [ ] Token-bucket rate limiter for NVD (5 req/30s unauthenticated,
+- [x] Token-bucket rate limiter for NVD (5 req/30s unauthenticated,
   50 req/30s with API key); no new dependencies (ticker-based).
-- [ ] `NVD_API_KEY` support: config field in `internal/config/config.go`
+- [x] `NVD_API_KEY` support: config field in `internal/config/config.go`
   + `JIN_NVD_API_KEY` env, sent via the `apiKey` header (not query param).
-- [ ] Retry with exponential backoff on 403/429; honor `Retry-After`
+- [x] Retry with exponential backoff on 403/429; honor `Retry-After`
   (max 2 retries) in `nvd_cve_checker.go`.
-- [ ] Two-layer cache for `nvd_cve_checker.go` and
+- [x] Two-layer cache for `nvd_cve_checker.go` and
   `ct_subdomain_enumerator.go`:
   - in-memory dedupe within a run (same tech+version queried once)
   - on-disk `~/.jin/cache/` with TTL (NVD 24h, crt.sh 6h)
-- [ ] **Surface throttling instead of swallowing it**:
+- [x] **Surface throttling instead of swallowing it**:
   `techstack_service.go:163` (`if err == nil && len(cves) > 0`) currently
   hides rate-limit errors — emit a visible warning such as
   `"NVD rate-limited, CVE results may be incomplete"`.
-- [ ] crt.sh resilience: retry/backoff on 503 and timeouts in
+- [x] crt.sh resilience: retry/backoff on 503 and timeouts in
   `ct_subdomain_enumerator.go`.
-- [ ] Config knobs: cache TTL / cache dir / rate-limit overrides in
+- [x] Config knobs: cache TTL / cache dir / rate-limit overrides in
   `internal/config/config.go` (flag > env > file > default).
 
 ## Phase 3 — Complete SARIF output (v2.7.0)
